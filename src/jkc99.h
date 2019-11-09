@@ -67,13 +67,15 @@
 
 #if 1
 #if __STDC_VERSION__ >= 199001L && defined(__STDC_IEC_559_COMPLEX__) && __STDC_IEC_559_COMPLEX__ == 1
+#define JKC99_HAS_COMPLEX 1
 
 #if 1
 
 #include <complex.h>
-typedef float _Complex          float_complex;
-typedef double _Complex         double_complex;
-typedef long double _Complex    long_double_complex;
+typedef float _Complex          Float_Complex;
+typedef double _Complex         Double_Complex;
+typedef long double _Complex    LongDouble_Complex;
+
 
 #define float_complex_to_bool(c)        (c)
 #define double_complex_to_bool(c)       (c)
@@ -106,20 +108,20 @@ typedef long double _Complex    long_double_complex;
 
 #else
 
-typedef struct float_complex {
+typedef struct Float_Complex {
     float re;
     float im;
-} float_complex;
+} Float_Complex;
 
-typedef struct double_complex {
+typedef struct Double_Complex {
     double re;
     double im;
-} double_complex;
+} Double_Complex;
 
-typedef struct long_double_complex {
+typedef struct LongDouble_Complex {
     long double re;
     long double im;
-} long_double_complex;
+} LongDouble_Complex;
 
 #define creal(c)                        ((c).re)
 #define cimag(c)                        ((c).im)
@@ -660,9 +662,9 @@ typedef struct ExprResult {
         float                   float_val;
         double                  double_val;
         long double             long_double_val;
-        float_complex           float_complex_val;
-        double_complex          double_complex_val;
-        long_double_complex     long_double_complex_val;
+        Float_Complex            float_complex_val;
+        Double_Complex          double_complex_val;
+        LongDouble_Complex      long_double_complex_val;
         intptr_t                intptr_val;
         uintptr_t               uintptr_val;
         size_t                  size_t_val;
@@ -1010,6 +1012,11 @@ typedef struct JKC99Type {
             long double             max;
             TypeHandle              correspondingType;
         } flt;
+        struct {
+            const char              *name;
+            size_t                  size;
+            TypeHandle              correspondingType;
+        } c;
         struct {
             Expr                    *bitCountExpr;
             int                     bitCount;

@@ -3547,25 +3547,38 @@ JKC99_API void jkc99_declaration_specifiers_get_type_storage_class_and_function_
                             *handle = ctx->type_signed_long;
                         } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_unsigned_int)) {
                             *handle = ctx->type_unsigned_long;
+                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double)) {
+                            *handle = ctx->type_long_double;
+                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double__Complex)) {
+                            /* TODO We should actually check if the double _Complex is explicit (error) or by default */
+                            *handle = ctx->type_long_double__Complex;
                         } else {
                             jkc99_assert(false);
                         }
                     } break;
                 case kTypeSpecifierFloat:
                     {
-                        if(JKC99_TYPE_HANDLE_INVALID(*handle)) {
+                        if(JKC99_TYPE_HANDLE_INVALID(*handle) ||
+                                JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_float)) {
                             *handle = ctx->type_float;
+                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double__Complex)) {
+                            /* TODO We should actually check if the double _Complex is explicit (error) or by default */
+                            *handle = ctx->type_float__Complex;
                         } else {
-                            jkc99_assert(false);
+                            jkc99_assert(false); /* TODO Error */
                         }
                     } break;
                 case kTypeSpecifierDouble:
                     {
                         if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_signed_long)) {
                             *handle = ctx->type_long_double;
-                        } else {
-                            jkc99_assert(JKC99_TYPE_HANDLE_INVALID(*handle));
+                        } else if(JKC99_TYPE_HANDLE_INVALID(*handle) || 
+                                JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double)) {
                             *handle = ctx->type_double;
+                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double__Complex)) {
+                            *handle = ctx->type_double__Complex;
+                        } else {
+                            jkc99_assert(false); /* TODO Error */
                         }
                     } break;
                 case kTypeSpecifierSigned:
@@ -3604,11 +3617,11 @@ JKC99_API void jkc99_declaration_specifiers_get_type_storage_class_and_function_
                     {
                         if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_long_double)) {
                             *handle = ctx->type_long_double__Complex;
-                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double)) {
-                            *handle = ctx->type_double__Complex;
-                        } else {
-                            jkc99_assert(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_float));
+                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_float)) {
                             *handle = ctx->type_float__Complex;
+                        } else if(JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double)) {
+                            jkc99_assert(JKC99_TYPE_HANDLE_INVALID(*handle) || JKC99_TYPE_HANDLE_EQ(*handle, ctx->type_double)); // TODO Error
+                            *handle = ctx->type_double__Complex;
                         }
                     } break;
                 case kTypeSpecifierStruct:
@@ -6329,7 +6342,16 @@ static void jkc99_parse_init(ParseContext *ctx, const char *filename) {
         ctx->type_long_double = JKC99_INDEX_TO_TYPE_HANDLE(index++);
         da_push(ctx->types, (JKC99Type){ .kind = kTypeLongDouble, .u.flt = { .name = "long double", .size = sizeof(long double), .min = LDBL_MIN, .max = LDBL_MAX }});
 
-        //TODO Complex types
+#ifdef JKC99_HAS_COMPLEX
+        ctx->type_float__Complex = JKC99_INDEX_TO_TYPE_HANDLE(index++);
+        da_push(ctx->types, (JKC99Type){ .kind = kTypeFloat_Complex, .u.c = { .name = "float _Complex", .size = sizeof(Float_Complex), .correspondingType = ctx->type_float }});
+
+        ctx->type_double__Complex = JKC99_INDEX_TO_TYPE_HANDLE(index++);
+        da_push(ctx->types, (JKC99Type){ .kind = kTypeDouble_Complex, .u.c = { .name = "double _Complex", .size = sizeof(Double_Complex), .correspondingType = ctx->type_double }});
+
+        ctx->type_long_double__Complex = JKC99_INDEX_TO_TYPE_HANDLE(index++);
+        da_push(ctx->types, (JKC99Type){ .kind = kTypeLongDouble_Complex, .u.c = { .name = "long double _Complex", .size = sizeof(LongDouble_Complex), .correspondingType = ctx->type_long_double }});
+#endif
 
 
         //Compiler dependent builtin types

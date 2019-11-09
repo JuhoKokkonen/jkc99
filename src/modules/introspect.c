@@ -63,6 +63,9 @@ static const char *gIntrospectHeader =
     "    "JKC99_INTROSPECT_KIND(TypeFloat)",\n"
     "    "JKC99_INTROSPECT_KIND(TypeDouble)",\n"
     "    "JKC99_INTROSPECT_KIND(TypeLongDouble)",\n"
+    "    "JKC99_INTROSPECT_KIND(TypeFloatComplex)",\n"
+    "    "JKC99_INTROSPECT_KIND(TypeDoubleComplex)",\n"
+    "    "JKC99_INTROSPECT_KIND(TypeLongDoubleComplex)",\n"
     "    "JKC99_INTROSPECT_KIND(TypeEnum)",\n"
     "    "JKC99_INTROSPECT_KIND(TypeStruct)",\n"
     "    "JKC99_INTROSPECT_KIND(TypeUnion)",\n"
@@ -707,12 +710,23 @@ JKC99_HOOK(generate_introspect_h) {
                     print_type_users(t);
                     printf_(" },\n");
                 } break;
-
             case kTypeFloat_Complex:
+                {
+                    printf_("{ .name=\"float _Complex\", .kind="JKC99_INTROSPECT_KIND(TypeFloatComplex)", .size=sizeof(float _Complex) ");
+                    print_type_users(t);
+                    printf_(" },\n");
+                } break;
             case kTypeDouble_Complex:
+                {
+                    printf_("{ .name=\"double _Complex\", .kind="JKC99_INTROSPECT_KIND(TypeDoubleComplex)", .size=sizeof(double _Complex) ");
+                    print_type_users(t);
+                    printf_(" },\n");
+                } break;
             case kTypeLongDouble_Complex:
                 {
-                    jkc99_assert(false); /* TODO */
+                    printf_("{ .name=\"long double _Complex\", .kind="JKC99_INTROSPECT_KIND(TypeLongDoubleComplex)", .size=sizeof(long double _Complex) ");
+                    print_type_users(t);
+                    printf_(" },\n");
                 } break;
 
             case kTypeQualified:
