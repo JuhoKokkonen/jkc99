@@ -6700,7 +6700,7 @@ JKC99_API JKC99_READ_ENTIRE_FILE(jkc99_os_read_entire_file) {
     char *buf = NULL;
     HANDLE fileHandle;
 
-    jkc99_assert(strlen);
+    jkc99_assert(len);
 
     char_to_tchar(filenameT, filename, jkc99_array_count(filenameT));
 
@@ -6721,7 +6721,7 @@ JKC99_API JKC99_READ_ENTIRE_FILE(jkc99_os_read_entire_file) {
                 if(ReadFile(fileHandle, buf, size, &read, 0)) {
                     jkc99_assert(read == size); //TODO
                     buf[size] = 0;
-                    *strlen = size;
+                    *len = size;
                     CloseHandle(fileHandle);
                 } else {
                     free(buf);
@@ -6808,9 +6808,9 @@ JKC99Module *jkc99_os_load_modules(size_t *moduleCount) {
                             jkc99_module_get_options_func *module_get_options = (jkc99_module_get_options_func*)dlsym(so, "jkc99_module_get_options");
                             JKC99Module module = {0};
 
-                            //module.name = str_intern_range(dent->d_name, len-3);
                             module.name = malloc(len-2);
-                            memcpy(module.name, dent->d_name, len-2);
+                            memcpy((char*)module.name, dent->d_name, len-3);
+                            *(((char*)module.name) + len-3) = 0;
                             module.get_version = module_version;
                             module.init = module_init;
                             module.get_options = module_get_options;
@@ -6849,7 +6849,7 @@ JKC99_API JKC99_READ_ENTIRE_FILE(jkc99_os_read_entire_file) {
     char *ptr = NULL;
     int file;
 
-    *size = 0;
+    *len = 0;
     file = open(filename, O_RDONLY);
 
     if(file >= 0) {
@@ -6865,7 +6865,7 @@ JKC99_API JKC99_READ_ENTIRE_FILE(jkc99_os_read_entire_file) {
                     perror(errStr);
                     ptr = NULL;
                 } else {
-                    *size = st.st_size;
+                    *len = st.st_size;
                 }
             } else {
                 jkc99_assert(st.st_size == 0);
@@ -6885,7 +6885,9 @@ JKC99_API JKC99_READ_ENTIRE_FILE(jkc99_os_read_entire_file) {
 }
 
 JKC99_API JKC99_WRITE_BUFFER_TO_FILE(jkc99_os_write_buffer_to_file) {
-    if(bufSize) {
+    int returnVal = 0;
+
+    if(len) {
         int file;
 
         jkc99_assert(buf);
@@ -6898,20 +6900,21 @@ JKC99_API JKC99_WRITE_BUFFER_TO_FILE(jkc99_os_write_buffer_to_file) {
             int zeroCount = 0;
             size_t written = 0;
 
-            while(written < bufSize) {
-                ssize_t ret = write(file, buf + written, bufSize - written);
+            while(written < len) {
+                ssize_t ret = write(file, buf + written, len - written);
 
                 if(ret > 0) {
                     written += (size_t)ret;
-                    if(written == bufSize) {
+                    if(written == len) {
                         break;
                     }
-                    jkc99_assert(written < bufSize);
+                    jkc99_assert(written < len);
                 } else if(ret == 0) {
                     if(++zeroCount >= maxZero) {
                         char errStr[PATH_MAX + 100];
                         snprintf(errStr, sizeof(errStr), "Maximum zero bytes written count exceeded on file %s", filename);
                         perror(errStr);
+                        returnVal = 1;
                         break;
                     }
                 } else {
@@ -6920,12 +6923,14 @@ JKC99_API JKC99_WRITE_BUFFER_TO_FILE(jkc99_os_write_buffer_to_file) {
                             char errStr[PATH_MAX + 100];
                             snprintf(errStr, sizeof(errStr), "Maximum interrupt count exceeded trying to write file %s", filename);
                             perror(errStr);
+                            returnVal = 2;
                             break;
                         }
                     } else {
                         char errStr[PATH_MAX + 100];
                         snprintf(errStr, sizeof(errStr), "Unable to write file %s", filename);
                         perror(errStr);
+                        returnVal = 3;
                         break;
                     }
                 }
@@ -6934,8 +6939,10 @@ JKC99_API JKC99_WRITE_BUFFER_TO_FILE(jkc99_os_write_buffer_to_file) {
             char errStr[PATH_MAX + 100];
             snprintf(errStr, sizeof(errStr), "Unable to write file %s", filename);
             perror(errStr);
+            returnVal = 4;
         }
     }
+    return returnVal;
 }
 
 #else

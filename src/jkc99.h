@@ -12,7 +12,6 @@
 #ifndef JKC99_H
 #define JKC99_H
 
-#define JKC99_API __declspec(dllexport)
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -56,8 +55,10 @@
 
 #if defined(_WIN32)
 #define EXPORT __declspec(dllexport)
+#define JKC99_API __declspec(dllexport)
 #elif defined(__linux__)
-#define EXPORT
+#define EXPORT extern
+#define JKC99_API extern
 #else
 #error "Unsupported operating system"
 #endif
@@ -67,7 +68,7 @@
 #if 1
 #if __STDC_VERSION__ >= 199001L && defined(__STDC_IEC_559_COMPLEX__) && __STDC_IEC_559_COMPLEX__ == 1
 
-#if 0
+#if 1
 
 #include <complex.h>
 typedef float _Complex          float_complex;
@@ -1380,7 +1381,7 @@ typedef JKC99_HOOK(jkc99_hook_func);
 #define JKC99_INSTALL_HOOK(name) void name(ParseContext *ctx, HookKind kind, jkc99_hook_func *func, void *ptr)
 typedef JKC99_INSTALL_HOOK(jkc99_install_hook_func);
 
-#define JKC99_READ_ENTIRE_FILE(name) const char *name(const char *filename, size_t *strlen)
+#define JKC99_READ_ENTIRE_FILE(name) const char *name(const char *filename, size_t *len)
 typedef JKC99_READ_ENTIRE_FILE(jkc99_read_entire_file_func);
 
 #define JKC99_WRITE_BUFFER_TO_FILE(name) int name(const char *buf, size_t len, const char *filename)

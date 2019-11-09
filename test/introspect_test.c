@@ -25,15 +25,19 @@ int main(int argc, char **argv) {
         char *str;
         double d;
         int *(*func)(TestStruct, char**);
-    } testMembers;
+    } testMembers __attribute__((__unused__));
 
-    printf("Introspection info available for %zu types and %zu symbols\n\n", 
+    printf("Introspection info available for %lu types and %lu symbols\n\n", 
             gIntrospectTypeInfoCount, gIntrospectSymbolCount);
 
     print_type_info(type_info(TestStruct));
     print_type_info(type_info(Weekday));
     print_type_info(type_info(testMembers));
+#ifdef _WIN32
     print_type_info(type_info(int (const char *const, ...)));
+#else
+    print_type_info(type_info(int (const char * __restrict, ...)));
+#endif
 }
 
 void print_type_info(IntrospectTypeInfo *info) {

@@ -34,7 +34,8 @@
 #endif
 
 static const char *gIntrospectHeader =
-    "typedef unsigned long long introspect_size_t;\n\n"
+    // TODO Use actual size_t. Possibly move the typedef for it to this position if it is available
+    "typedef unsigned long introspect_size_t;\n\n"
     //"#define "JKC99_INTROSPECT_MACRO(OFFSET_OF)"(type,name) __builtin_offsetof(type, name)\n\n"
     //"#define "JKC99_INTROSPECT_MACRO(OFFSET_OF)"(type,name) ((size_t)&((type){0}).name)\n\n"
     //"#define "JKC99_INTROSPECT_MACRO(UNUSED)" __attribute((unused))\n\n"
@@ -147,7 +148,8 @@ static const char *gIntrospectHeader =
     JKC99_INTROSPECT_UNUSED"extern "JKC99_INTROSPECT_TYPE(TypeInfo)" *"JKC99_INTROSPECT_GLOBAL(TypeInfo)";\n"
     JKC99_INTROSPECT_UNUSED"extern introspect_size_t "JKC99_INTROSPECT_GLOBAL(TypeInfoCount)";\n"
     JKC99_INTROSPECT_UNUSED"extern "JKC99_INTROSPECT_TYPE(Symbol)" *"JKC99_INTROSPECT_GLOBAL(Symbols)";\n"
-    JKC99_INTROSPECT_UNUSED"extern introspect_size_t "JKC99_INTROSPECT_GLOBAL(SymbolCount)";\n\n\n";
+    JKC99_INTROSPECT_UNUSED"extern introspect_size_t "JKC99_INTROSPECT_GLOBAL(SymbolCount)";\n\n\n"
+    ;
 
 typedef struct IntrospectSymbolExclusion {
     const char *identifier;
