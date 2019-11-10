@@ -414,9 +414,8 @@ static char *generate_type_declaration_specifiers_(ParseContext *ctx, TypeHandle
                         gPrintBuffer = prevBuf;
                         jkc99_assert(countExpr && countExpr[0]);
                         da_printf(buf, "%s%s%s[%s%s]", pl, base, pr, t.u.a.isStatic ? "static " : "", countExpr);
-                    } else {
+                    } else if(t.u.a.init && t.u.a.init->kind == kInitializerList) {
                         size_t i = 0;
-                        jkc99_assert(t.u.a.init && t.u.a.init->kind == kInitializerList);
                         InitializerList *list = &t.u.a.init->u.list;
                         for(i = 0; i < list->count; ++i) {
                             if(list->designations[i].count) {
@@ -431,6 +430,8 @@ static char *generate_type_declaration_specifiers_(ParseContext *ctx, TypeHandle
                             jkc99_assert(false);
                             da_printf(buf, "%s%s%s[%s]", pl, base, pr, t.u.a.isStatic ? "static " : "");
                         }
+                    } else {
+                        da_printf(buf, "%s%s%s[%s]", pl, base, pr, t.u.a.isStatic ? "static " : "");
                     }
                 }
                 buf = generate_type_declaration_specifiers_(ctx, t.u.a.base, buf, true);
@@ -758,21 +759,23 @@ JKC99_HOOK(generate_introspect_h) {
                         printf_("(");
                         print_expr(t->u.a.countExpr);
                         printf_(")");
-                    } else {
-                        size_t i = 0;
-                        jkc99_assert(t->u.a.init && t->u.a.init->kind == kInitializerList);
-                        InitializerList *list = &t->u.a.init->u.list;
-                        for(i = 0; i < list->count; ++i) {
-                            if(list->designations[i].count) {
-                                break;
+                    } else if(t->u.a.init && t->u.a.init->kind == kInitializerList) {
+                            size_t i = 0;
+                            InitializerList *list = &t->u.a.init->u.list;
+                            for(i = 0; i < list->count; ++i) {
+                                if(list->designations[i].count) {
+                                    break;
+                                }
                             }
-                        }
 
-                        if(i == list->count) {
-                            printf_("%zu", list->count);
-                        } else {
-                            jkc99_assert(false); /* TODO */
-                        }
+                            if(i == list->count) {
+                                printf_("%zu", list->count);
+                            } else {
+                                jkc99_assert(false); /* TODO */
+                                printf_("0");
+                            }
+                    } else {
+                        printf_("0");
                     }
                     printf_(" } },\n");
                 } break;
