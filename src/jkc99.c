@@ -68,6 +68,10 @@ struct ParseContext {
 #endif
 };
 
+#ifdef JKC99_TEST_BUILD
+#include "modules/test.h"
+#endif
+
 JKC99_API const char *jkc99_str_intern_range(ParseContext *ctx, const char *str, size_t len) {
     size_t i;
 
@@ -550,7 +554,7 @@ JKC99_API Attribute *jkc99_parse_attribute_list(ParseContext *ctx, size_t *count
 JKC99_API Stmt *jkc99_stmt_alloc(ParseContext *ctx, Source *src, StmtKind kind) {
     Stmt *stmt = arena_alloc(&ctx->arena, sizeof(Stmt));
     stmt->kind = kind;
-    stmt->src = *src;
+    stmt->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, stmt);
     return stmt;
 }
@@ -599,6 +603,13 @@ JKC99_API Stmt *jkc99_stmt_compound(ParseContext *ctx, Source *src, size_t count
     };
 
     return res;
+}
+
+JKC99_API Stmt *jkc99_stmt_compound_push(UNUSED ParseContext *ctx, Stmt *compound, BlockItem blockItem) {
+    da_push(compound->u.c.items, blockItem);
+    compound->u.c.count = da_count(compound->u.c.items);
+
+    return compound;
 }
 
 JKC99_API Stmt *jkc99_stmt_expr(ParseContext *ctx, Source *src, size_t attributeCount, Attribute *attributes, Expr *expr) {
@@ -3891,7 +3902,7 @@ JKC99_API TypeName *jkc99_type_name(ParseContext *ctx, Source *src, size_t speci
 
     TypeName *tn = arena_alloc(&ctx->arena, sizeof(TypeName));
 
-    tn->src = *src;
+    tn->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, tn);
     tn->specifierCount = specifierCount;
     tn->specifiers = specifiers;
@@ -3915,7 +3926,7 @@ JKC99_API TypeName *jkc99_type_name(ParseContext *ctx, Source *src, size_t speci
 JKC99_API DirectAbstractDeclarator *jkc99_direct_abstract_declarator_alloc(ParseContext *ctx, Source *src, DirectAbstractDeclaratorKind kind) {
     DirectAbstractDeclarator *direct = arena_alloc(&ctx->arena, sizeof(DirectAbstractDeclarator));
     direct->kind = kind;
-    direct->src = *src;
+    direct->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, direct);
     return direct;
 }
@@ -4057,7 +4068,7 @@ JKC99_API DirectAbstractDeclarator *jkc99_parse_direct_abstract_declarator(Parse
 JKC99_API AbstractDeclarator *jkc99_abstract_declarator(ParseContext *ctx, Source *src, size_t beforeAttrCount, Attribute *beforeAttrs, size_t afterAttrCount, Attribute *afterAttrs, size_t ptrCount, Pointer *pointers, DirectAbstractDeclarator *dd) {
     AbstractDeclarator *d = arena_alloc(&ctx->arena, sizeof(AbstractDeclarator));
 
-    d->src = *src;
+    d->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, d);
     d->pointerCount = ptrCount;
     d->pointers = pointers;
@@ -4178,7 +4189,7 @@ JKC99_API const char *jkc99_parse_string(ParseContext *ctx) {
 JKC99_API Expr *jkc99_expr_alloc(ParseContext *ctx, Source *src, ExprKind kind) {
     Expr *expr = arena_alloc(&ctx->arena, sizeof(Expr));
     expr->kind = kind;
-    expr->src = *src;
+    expr->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, expr);
     return expr;
 }
@@ -5498,7 +5509,7 @@ JKC99_API Pointer *jkc99_parse_pointer(ParseContext *ctx, Pointer *list) {
 JKC99_API DirectDeclarator *jkc99_direct_declarator_alloc(ParseContext *ctx, Source *src, DirectDeclaratorKind kind) {
     DirectDeclarator *direct = arena_alloc(&ctx->arena, sizeof(DirectDeclarator));
     direct->kind = kind;
-    direct->src = *src;
+    direct->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, direct);
     return direct;
 }
@@ -5562,7 +5573,7 @@ JKC99_API DirectDeclarator *jkc99_direct_declarator_func_identifiers(ParseContex
 
 JKC99_API void *jkc99_declaration_alloc(ParseContext *ctx, Source *src, size_t size, size_t specifierCount, DeclarationSpecifier *specifiers) {
     DeclarationCommon *decl = arena_alloc(&ctx->arena, size);
-    decl->src = *src;
+    decl->src = src ? *src : (Source){0};
     //jkc99_assert(ctx->currentDirectiveCount == 0);
     jkc99_assert(specifierCount);
     move_directives(&specifiers[0].u, decl);
@@ -5711,10 +5722,15 @@ static void jkc99_sym_push_function(ParseContext *ctx, const char *name, TypeHan
     oldSym = jkc99_sym_get_current_scope(ctx, name);
     if(oldSym) {
         jkc99_assert(oldSym->identifier == name);
-        jkc99_assert(oldSym->kind == kSymbolFunction); //TODO Error
-        jkc99_assert(JKC99_TYPE_HANDLE_EQ(oldSym->type, type)); //TODO Error
-        jkc99_assert(oldSym->u.functionDefinition == NULL); //TODO Error
-        oldSym->u.functionDefinition = f;
+        if(oldSym->kind == kSymbolFunction && JKC99_TYPE_HANDLE_EQ(oldSym->type, type)) {
+            if(oldSym->u.functionDefinition == NULL) {
+                oldSym->u.functionDefinition = f;
+            } else {
+                jkc99_log_error(ctx, "Redefining a previously defined function %s", name);
+            }
+        } else {
+            jkc99_log_error(ctx, "Type of function %s conflicts with a previous declaration", name);
+        }
     } else {
         Symbol sym = {0};
         //jkc99_assert(storageClass != kStorageClassTypedef);
@@ -5938,7 +5954,7 @@ JKC99_API DirectDeclarator *jkc99_parse_direct_declarator(ParseContext *ctx) {
 JKC99_API Declarator *declarator(ParseContext *ctx, Source *src, size_t beforeAttrCount, Attribute *beforeAttrs, size_t afterAttrCount, Attribute *afterAttrs, size_t ptrCount, Pointer *pointers, DirectDeclarator *dd) {
     Declarator *d = arena_alloc(&ctx->arena, sizeof(Declarator));
 
-    d->src = *src;
+    d->src = src ? *src : (Source){0};
     jkc99_parse_empty_directives(ctx, d);
     d->pointerCount = ptrCount;
     d->pointers = pointers;
@@ -6262,7 +6278,7 @@ parse_function_definition_end:
     return extdecl;
 }
 
-static void jkc99_parse_init(ParseContext *ctx, const char *filename) {
+UNUSED static void jkc99_parse_init(ParseContext *ctx, const char *filename) {
     ctx->filename = filename;
     
     jkc99_scope_push(ctx);
@@ -6971,7 +6987,7 @@ JKC99_API JKC99_WRITE_BUFFER_TO_FILE(jkc99_os_write_buffer_to_file) {
 #error "Unsupported operating system"
 #endif
 
-static bool jkc99_execute_options(ParseContext *ctx, size_t optionCount, Option *options, int argc, char **argv) {
+UNUSED static bool jkc99_execute_options(ParseContext *ctx, size_t optionCount, Option *options, int argc, char **argv) {
     bool carryOn = true;
     int i = 0;
     while(i < argc) {
@@ -7027,6 +7043,15 @@ static bool jkc99_execute_options(ParseContext *ctx, size_t optionCount, Option 
     return carryOn;
 }
 
+#ifdef JKC99_TEST_BUILD
+
+#include "unit_tests.c"
+int main(UNUSED int argc, UNUSED char **argv) {
+    return jkc99_test_run();
+}
+
+#else /* JKC99_TEST_BUILD */
+
 int main(int argc, char **argv) {
     ParseContext ctx = {0};
     int returnVal = 0;
@@ -7037,54 +7062,11 @@ int main(int argc, char **argv) {
 
     if(gModules) {
         bool carryOn = true;
-#if 0
-        bool carryOn = true;
-        int i = 1;
-        while(i < argc && argv[i][0] == '-') {
-            if(argv[i][1] == '-') {
-                bool found = false;
-                size_t len;
-                const char *val = NULL;
-                for(len = 2; ; ++len) {
-                    if(argv[i][len] == '=') {
-                        val = argv[i] + len + 1;
-                        break;
-                    } else if(argv[i][len] == '\0') {
-                        break;
-                    }
-                }
-                len -= 2;
-                for(size_t j = 0; j < jkc99_array_count(gOptions); ++j) {
-                    if(gOptions[j].nameLen == len && strncmp(gOptions[j].name, argv[i] + 2, len) == 0) {
-                        bool res = gOptions[j].func(&ctx, val);
-                        carryOn = carryOn ? res : false;
-                        found = true;
-                        break;
-                    }
-                }
-                if(!found) {
-                    fprintf(stderr, "Unrecognised option %s\n", argv[i]);
-                    carryOn = false;
-                }
-            } else if(argv[i][1]) {
-                option_func *func = gOptions[(int)argv[i][1]].func;
-                if(func) {
-                    bool res = func(&ctx, argv[i][2] == '=' ? argv[i] + 3 : NULL);
-                    carryOn = carryOn ? res : false;
-                } else {
-                    fprintf(stderr, "Unrecognised option -%c\n", argv[i][1]);
-                    carryOn = false;
-                }
-            }
-            ++i;
-        }
-#else
         int i = 1;
         while(i < argc && argv[i][0] == '-') {
             ++i;
         }
         carryOn = jkc99_execute_options(&ctx, jkc99_array_count(gOptions), gOptions, i-1, argv + 1);
-#endif
         if(carryOn) {
             if(i < argc) {
                 size_t bufferSize;
@@ -7173,3 +7155,4 @@ int main(int argc, char **argv) {
     return returnVal;
 }
 
+#endif /* JKC99_TEST_BUILD */

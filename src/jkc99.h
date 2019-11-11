@@ -1469,6 +1469,10 @@ JKC99_API TypeHandle   jkc99_type_signed_short(ParseContext *ctx);
 JKC99_API TypeHandle   jkc99_type_signed_int(ParseContext *ctx);
 JKC99_API TypeHandle   jkc99_type_signed_long(ParseContext *ctx);
 JKC99_API TypeHandle   jkc99_type_signed_long_long(ParseContext *ctx);
+#define jkc99_type_short        jkc99_type_signed_short
+#define jkc99_type_int          jkc99_type_signed_int
+#define jkc99_type_long         jkc99_type_signed_long
+#define jkc99_type_long_long    jkc99_type_signed_long_long
 JKC99_API TypeHandle   jkc99_type__Bool(ParseContext *ctx);
 JKC99_API TypeHandle   jkc99_type_unsigned_char(ParseContext *ctx);
 JKC99_API TypeHandle   jkc99_type_unsigned_short(ParseContext *ctx);
@@ -1542,6 +1546,7 @@ JKC99_API Stmt *jkc99_stmt_label(ParseContext *ctx, Source *src, size_t attrCoun
 JKC99_API Stmt *jkc99_stmt_case(ParseContext *ctx, Source *src, Expr *expr, Stmt *stmt);
 JKC99_API Stmt *jkc99_stmt_default(ParseContext *ctx, Source *src, Stmt *stmt);
 JKC99_API Stmt *jkc99_stmt_compound(ParseContext *ctx, Source *src, size_t count, BlockItem *items);
+JKC99_API Stmt *jkc99_stmt_compound_push(ParseContext *ctx, Stmt *compound, BlockItem blockItem);
 JKC99_API Stmt *jkc99_stmt_expr(ParseContext *ctx, Source *src, size_t attributeCount, Attribute *attributes, Expr *expr);
 JKC99_API Stmt *jkc99_stmt_if(ParseContext *ctx, Source *src, Expr *expr, Stmt *stmt, Stmt *elseStmt);
 JKC99_API Stmt *jkc99_stmt_switch(ParseContext *ctx, Source *src, Expr *expr, Stmt *stmt);
