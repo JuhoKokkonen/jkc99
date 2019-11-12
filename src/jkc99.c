@@ -125,7 +125,7 @@ JKC99_API void jkc99_log_error_src(ParseContext *ctx, Source *src, const char *f
 JKC99_API void jkc99_log_error_unexpected(ParseContext *ctx) {
     if(ctx->lexer->token == CLEX_eof) {
         fprintf(stderr, "Unexpected EOF\n");
-    } else{
+    } else {
         int len = (int)(ctx->lexer->where_lastchar-ctx->lexer->where_firstchar+1);
         jkc99_assert(len > 0);
         fprintf(stderr, "Unexpected token %*.s", len, ctx->lexer->where_firstchar);
@@ -142,25 +142,11 @@ static void move_directives(void *fromPtr, void *toPtr) {
 }
 
 static void jkc99_parse_empty_directives(ParseContext *ctx, void *ptr) {
-    size_t newDirectiveCount = da_count(ctx->directives) - ctx->currentDirectiveCount;
     ASTCommon *node = ptr;
-    PreprocessorDirective *newDirectives = NULL;
 
-    jkc99_assert(da_count(ctx->directives) >= ctx->currentDirectiveCount);
-    jkc99_assert(!ctx->currentDirectiveCount || ctx->directives);
-
-    node->directiveCount = ctx->currentDirectiveCount;
+    node->directiveCount = da_count(ctx->directives);
     node->directives = ctx->directives;
-
-    if(newDirectiveCount) {
-        da_grow(newDirectives, newDirectiveCount);
-        for(size_t i = 0; i < newDirectiveCount; i++) {
-            newDirectives[i] = ctx->directives[ctx->currentDirectiveCount + i];
-        }
-    }
-
-    ctx->currentDirectiveCount = newDirectiveCount;
-    ctx->directives = newDirectives;
+    ctx->directives = NULL;
 }
 
 static char* skip_preprocessing_directive(ParseContext *ctx) {
@@ -204,6 +190,7 @@ JKC99_API void jkc99_lexer_source(ParseContext *ctx, Source *src) {
     src->column = (ctx->lexer->where_firstchar >= ctx->lexer->lineBegin) ?
                     (unsigned int)(ctx->lexer->where_firstchar - ctx->lexer->lineBegin) : 0U;
     src->from = ctx->lexer->where_firstchar;
+    src->directiveCount = da_count(ctx->directives);
 }
 
 #define source_end(ctx,src)
@@ -215,6 +202,15 @@ JKC99_API void jkc99_lexer_rollback(ParseContext *ctx, Source *src) {
     ctx->lexer->lineMarkerFlags = src->lineMarkerFlags;
     ctx->lexer->parse_point = (char*)src->from;
     //lexer_next(ctx);
+    if(src->directiveCount) {
+        if(src->directiveCount > da_count(ctx->directives)) {
+            da_popn(ctx->directives, src->directiveCount - da_count(ctx->directives));
+        } else {
+            jkc99_assert(src->directiveCount == da_count(ctx->directives));
+        }
+    } else {
+        da_free(ctx->directives);
+    }
     stb_c_lexer_get_token(ctx->lexer);
 }
 
@@ -295,13 +291,15 @@ static void jkc99_parse_preprocessor_finish(ParseContext *ctx) {
 }
 
 JKC99_API void jkc99_lexer_next(ParseContext *ctx) {
-    ctx->currentDirectiveCount = da_count(ctx->directives);
     stb_c_lexer_get_token(ctx->lexer);
+}
 
-    while(jkc99_lexer_is(ctx, '#')) {
+static void jkc99_lexer_directives(ParseContext *ctx) {
+    while(ctx->lexer->token == '#') {
         PreprocessorDirective dir = {0};
 
         jkc99_lexer_source(ctx, &dir.src);
+        //stb_c_lexer_get_token(ctx->lexer);
 
         if((ctx->lexer->eof - ctx->lexer->where_firstchar) >= 2 &&
             ctx->lexer->where_firstchar[1] == ' ' &&
@@ -377,6 +375,7 @@ JKC99_API void jkc99_lexer_next(ParseContext *ctx) {
 }
 
 JKC99_API bool jkc99_lexer_is(ParseContext *ctx, long type) {
+    jkc99_lexer_directives(ctx);
     if(ctx->lexer->token == type) {
         return true;
     }
@@ -384,6 +383,7 @@ JKC99_API bool jkc99_lexer_is(ParseContext *ctx, long type) {
 }
 
 JKC99_API bool jkc99_lexer_is_id(ParseContext *ctx, const char *id) {
+    jkc99_lexer_directives(ctx);
     if(ctx->lexer->token == CLEX_id && jkc99_str_intern(ctx, ctx->lexer->string) == id) {
         return true;
     } else {
@@ -392,6 +392,7 @@ JKC99_API bool jkc99_lexer_is_id(ParseContext *ctx, const char *id) {
 }
 
 JKC99_API bool jkc99_lexer_match(ParseContext *ctx, long type) {
+    jkc99_lexer_directives(ctx);
     if(ctx->lexer->token == type) {
         jkc99_lexer_next(ctx);
         return true;
@@ -400,6 +401,7 @@ JKC99_API bool jkc99_lexer_match(ParseContext *ctx, long type) {
 }
 
 JKC99_API bool jkc99_lexer_match_id(ParseContext *ctx, const char *id) {
+    jkc99_lexer_directives(ctx);
     if(ctx->lexer->token == CLEX_id && jkc99_str_intern(ctx, ctx->lexer->string) == id) {
         jkc99_lexer_next(ctx);
         return true;
@@ -408,6 +410,7 @@ JKC99_API bool jkc99_lexer_match_id(ParseContext *ctx, const char *id) {
 }
 
 JKC99_API bool jkc99_lexer_require(ParseContext *ctx, long type) {
+    jkc99_lexer_directives(ctx);
     if(ctx->lexer->token == type) {
         jkc99_lexer_next(ctx);
         return true;
@@ -472,6 +475,7 @@ JKC99_API bool jkc99_lexer_require(ParseContext *ctx, long type) {
 }
 
 JKC99_API bool jkc99_lexer_require_id(ParseContext *ctx, const char *id) {
+    jkc99_lexer_directives(ctx);
     if(ctx->lexer->token == CLEX_id && jkc99_str_intern(ctx, ctx->lexer->string) == id) {
         jkc99_lexer_next(ctx);
         return true;
@@ -4204,7 +4208,7 @@ JKC99_API Expr *jkc99_expr_expr(ParseContext *ctx, Source *src, Expr *expr) {
 JKC99_API Expr *jkc99_expr_string(ParseContext *ctx, Source *src, const char *str) {
     Expr *e = jkc99_expr_alloc(ctx, src, kExprPrimary);
     e->u.primary.kind = kExprPrimaryStringLiteral;
-    e->u.primary.u.str = str;
+    e->u.primary.u.str.str = str;
     return e;
 }
 
@@ -6448,6 +6452,7 @@ void jkc99_parse(ParseContext *ctx) {
     while(ctx->parsing) {
         Source src;
         jkc99_lexer_source(ctx, &src);
+        jkc99_lexer_directives(ctx);
         switch(ctx->lexer->token) {
             case CLEX_parse_error:
                 {

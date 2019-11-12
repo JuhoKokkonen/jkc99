@@ -987,6 +987,7 @@ static void print_expr(Expr *expr) {
                                     } break;
                                 case kConstantCharacter:
                                     {
+                                        /* TODO Support wide character constants */
                                         switch(c->u.charVal) {
                                             case '\\':  printf_("'\\\\'");    break;
                                             case '\'':  printf_("'\\\''");    break;
@@ -1004,8 +1005,8 @@ static void print_expr(Expr *expr) {
                         } break;
                     case kExprPrimaryStringLiteral:
                         {
-                            /* TODO Support UTF-8 */
-                            const char *p = e->u.str;
+                            /* TODO Support wide strings */
+                            const char *p = e->u.str.str;
                             printf_("\"");
                             while(*p) {
                                 switch(*p) {

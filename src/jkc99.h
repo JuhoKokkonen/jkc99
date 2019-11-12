@@ -1,12 +1,12 @@
 /* TODO These are some of the bigger items
- *  - Proper error messages universally. At the moment we basically just assert and/or chash out
+ *  - Proper error messages universally. At the moment we mostly just assert and/or crash out
  *  - Compile time expression evaluation needs a lot of work
  *  - Support multiple compilation units properly
  *  - Support for bitfields
- *  - Support for Complex types
  *  - Optimise, at the very least use hash table in place of linear lookups in certain places
  *  - Discriminate function types on calling convention
  *  - Support stateful pragmas such as pack or attribute push/pop for types
+ *  - Support wide string literals and character constants
  */
 
 #ifndef JKC99_H
@@ -224,6 +224,7 @@ typedef struct Source {
     unsigned int    column;
     const char      *from;
     int             lineMarkerFlags;
+    size_t          directiveCount;
 } Source;
 
 typedef struct PreprocessorDirectiveLineMarker {
@@ -1100,7 +1101,8 @@ typedef enum ConstantRepresentation {
     kConstantDecimal,
     kConstantHex,
     kConstantOctal,
-    kConstantDecimalWithExponent
+    kConstantDecimalWithExponent,
+    kConstantWide
 } ConstantRepresentation;
 
 typedef struct Constant {
@@ -1112,6 +1114,7 @@ typedef struct Constant {
         unsigned long long  intVal;
         double              floatVal;
         char                charVal;
+        wchar_t             wcharVal;
     } u;
 } Constant;
 
@@ -1120,7 +1123,10 @@ typedef struct ExprPrimary {
     union {
         const char      *identifier;
         Constant        constant;
-        const char      *str;
+        struct {
+            const char      *str;
+            const wchar_t   *wstr;
+        } str;
         Expr            *expr;
     } u;
 } ExprPrimary;

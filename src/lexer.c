@@ -165,6 +165,32 @@ static int stb__clex_parse_char(char *p, char **q) {
     return (unsigned char) *p;
 }
 
+#if 0
+static int stb__clex_parse_wchar(char *p, char **q) {
+    if (*p == '\\') {
+        *q = p+2;
+        switch(p[1]) {
+            case '\\': return '\\';
+            case '\'': return '\'';
+            case '"': return '"';
+            case 't': return '\t';
+            case 'f': return '\f';
+            case 'n': return '\n';
+            case 'r': return '\r';
+            case 'v': return '\v';
+            case 'a': return '\a';
+            case 'b': return '\b';
+            case '?': return '\?';
+            case '0': return '\0';
+            case 'x': case 'X': return -1;
+            case 'u': return -1;
+        }
+    }
+    *q = p+1;
+    return (unsigned char) *p;
+}
+#endif
+
 static int stb__clex_skip_whitespace_and_comments(stb_lexer *lexer, char **p) {
     for (;;) {
         while (*p != lexer->eof && stb__clex_iswhite(**p)) {
@@ -272,6 +298,44 @@ int stb_c_lexer_get_token(stb_lexer *lexer) {
     }
 
     switch (*p) {
+#if 0
+        case 'L':
+            {
+                char *start = p;
+                if(p[1] == '\'' && (p+2) < lexer->eof) {
+                    jkc99_assert(sizeof(lexer->int_number) >= sizeof(wchar_t));
+                    p += 2;
+                    if (*p == '\\') {
+                        *q = p+2;
+                        switch(p[1]) {
+                            case '\\': return '\\';
+                            case '\'': return '\'';
+                            case '"': return '"';
+                            case 't': return '\t';
+                            case 'f': return '\f';
+                            case 'n': return '\n';
+                            case 'r': return '\r';
+                            case 'v': return '\v';
+                            case 'a': return '\a';
+                            case 'b': return '\b';
+                            case '?': return '\?';
+                            case '0': return '\0';
+                            case 'x': case 'X': return -1;
+                            case 'u': return -1;
+                        }
+                    }
+                    *q = p+1;
+                    return (unsigned char) *p;
+                    if (lexer->int_number < 0)
+                        return stb__clex_token(lexer, CLEX_parse_error, start,start);
+                    if (p == lexer->eof || *p != '\'')
+                        return stb__clex_token(lexer, CLEX_parse_error, start,p);
+                    return stb__clex_token(lexer, CLEX_charlit, start, p);
+                } else if(p[1] == '\"') {
+                }
+            } /* Fall through */
+#endif
+
         default:
             if ( (*p >= 'a' && *p <= 'z')
                     || (*p >= 'A' && *p <= 'Z')

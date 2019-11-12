@@ -20,6 +20,7 @@
 #define JKC99_TEST(name) int JKC99_TEST_CONCAT(JKC99_TEST_PREFIX,name)(int condIndex)
 #endif
 
+#include <stdio.h>
 
 static inline void jkc99_test_fail(const char *test, int condIndex, const char *cond) {
     printf("    %-48s FAIL condition %d (%s)\n",test,condIndex,cond);
@@ -33,6 +34,7 @@ static inline void jkc99_test_fail(const char *test, int condIndex, const char *
     } \
     condIndex++
 
+#if 0
 #define JKC99T_STRCMP(a,b) \
     if(strcmp(a, b) != 0) { \
         JKC99T_FAIL(__func__,condIndex,"STRCMP"); \
@@ -44,6 +46,19 @@ static inline void jkc99_test_fail(const char *test, int condIndex, const char *
         JKC99T_FAIL(__func__,condIndex,"STRNCMP"); \
     } \
     condIndex++
+
+#define JKC99T_WCSCMP(a,b) \
+    if(wcscmp(a, b) != 0) { \
+        JKC99T_FAIL(__func__,condIndex,"WCSCMP"); \
+    } \
+    condIndex++
+
+#define JKC99T_WCSNCMP(a,b,n) \
+    if(wcsncmp(a, b, n) != 0) { \
+        JKC99T_FAIL(__func__,condIndex,"WCSNCMP"); \
+    } \
+    condIndex++
+#endif
 
 
 static int jkc99_test_run(void);

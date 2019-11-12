@@ -69,7 +69,7 @@
 #define da_pushn(arr,n) (da_maybe_grow_internal((arr), n), da_count_internal(arr) += n)
 #define da_pop(arr) (da_count(arr) ? JK_DYNAMIC_ARRAY_MEMSET((arr) + (--da_count_internal(arr)), 0, sizeof(*(arr))), 0 : 0)
 #define da_popn(arr,n) (da_count(arr) ? JK_DYNAMIC_ARRAY_MEMSET((arr) + (da_count_internal(arr) - JK_DYNAMIC_ARRAY_MIN((n), da_count_internal(arr))), 0, sizeof(*(arr))*(JK_DYNAMIC_ARRAY_MIN((n), da_count_internal(arr)))), da_count_internal(arr) -= JK_DYNAMIC_ARRAY_MIN((n), da_count_internal(arr)), 0 : 0)
-#define da_free(arr) ((arr) ? free(((JK_DYNAMIC_ARRAY_SIZE_T*)(arr)) - 2), (arr) = 0, 0 : 0)
+#define da_free(arr) ((arr) ? free(((JK_DYNAMIC_ARRAY_SIZE_T*)(arr)) - 2), (arr) = NULL, 0 : 0)
 #define da_clear(arr) (da_count(arr) ? JK_DYNAMIC_ARRAY_MEMSET((arr), 0, sizeof(*(arr))*da_count_internal(arr)), da_count_internal(arr) = 0, 0 : 0);
 #define da_grow(arr,n) (((arr) = da_grow_internal((arr), (n), sizeof(*(arr)))), da_count_internal(arr) += (n))
 #define da_remove_swap_last(arr,index) ((((index) >= 0) && (index) < da_count_internal(arr)) ? (JK_DYNAMIC_ARRAY_MEMCPY((arr) + (index), &da_last(arr), sizeof(*(arr))), --da_count_internal(arr)) : 0)
