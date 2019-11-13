@@ -2,7 +2,7 @@
 jkc9 is a parser for the C programming language, specifically standard compliant C99.
 The program can be used for example to perform static code analysis or to add programming features that standard C is lacking.
 This is a personal project and as such is not ready for any sort of production use.
-Lexer is currently based on modified version of (stb_c_lexer.h)[https://github.com/nothings/stb/blob/master/stb_c_lexer.h] by Sean Barrett.
+Lexer is currently based on modified version of [stb_c_lexer.h](https://github.com/nothings/stb/blob/master/stb_c_lexer.h) by Sean Barrett.
 Otherwise original code by the author.
 
 ## Building
