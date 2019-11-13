@@ -51,7 +51,7 @@ void print_type_info(IntrospectTypeInfo *info) {
                         IntrospectMember *m = info->u.su.members + i;
                         IntrospectTypeInfo *mInfo = gIntrospectTypeInfo + m->type;
                         printf("    name: %-14s type: %-36s offset: %zu\n", 
-                                m->name, mInfo->name, m->offset);
+                                m->name, mInfo->name, (size_t)m->offset);
                     }
                     if(info->userCount) {
                         printf("  Globals:\n");

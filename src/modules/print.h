@@ -925,13 +925,13 @@ static void print_expr(Expr *expr) {
                                             printf_("%s", c->str);
                                         } else {
                                             switch(c->representation) {
-                                                case kConstantDecimal:
+                                                case kConstantRepresentationDecimal:
                                                     printf_("%llu%.3s", c->u.intVal, c->suffix);
                                                     break;
-                                                case kConstantHex:
+                                                case kConstantRepresentationHex:
                                                     printf_("0x%llx%.3s", c->u.intVal, c->suffix);
                                                     break;
-                                                case kConstantOctal:
+                                                case kConstantRepresentationOctal:
                                                     printf_("%s%llo%.3s", c->u.intVal ? "0" : "", c->u.intVal, c->suffix);
                                                     break;
                                                 default: jkc99_assert(false); break;
@@ -947,33 +947,33 @@ static void print_expr(Expr *expr) {
                                             /* TODO We need to actually ensure we don't introduce changes to values here. At the moment values are just printed at a reasonable precision but there's no guarantees. */
                                             if(c->suffix[0] == 'f' || c->suffix[0] == 'F') {
                                                 switch(c->representation) {
-                                                    case kConstantDecimal:
-                                                    case kConstantDecimalWithExponent:
+                                                    case kConstantRepresentationDecimal:
+                                                    case kConstantRepresentationDecimalWithExponent:
                                                         printf_("%.9gF", (float)c->u.floatVal);
                                                         break;
-                                                    case kConstantHex:
+                                                    case kConstantRepresentationHex:
                                                         printf_("%aF", (float)c->u.floatVal);
                                                         break;
                                                     default: jkc99_assert(false); break;
                                                 }
                                             } else if(c->suffix[0] == 'l' || c->suffix[0] == 'L') {
                                                 switch(c->representation) {
-                                                    case kConstantDecimal:
-                                                    case kConstantDecimalWithExponent:
+                                                    case kConstantRepresentationDecimal:
+                                                    case kConstantRepresentationDecimalWithExponent:
                                                         printf_("%.21lg", c->u.floatVal);
                                                         break;
-                                                    case kConstantHex:
+                                                    case kConstantRepresentationHex:
                                                         printf_("%la", c->u.floatVal);
                                                         break;
                                                     default: jkc99_assert(false); break;
                                                 }
                                             } else {
                                                 switch(c->representation) {
-                                                    case kConstantDecimal:
-                                                    case kConstantDecimalWithExponent:
+                                                    case kConstantRepresentationDecimal:
+                                                    case kConstantRepresentationDecimalWithExponent:
                                                         printf_("%.17g", c->u.floatVal);
                                                         break;
-                                                    case kConstantHex:
+                                                    case kConstantRepresentationHex:
                                                         printf_("%a", c->u.floatVal);
                                                         break;
                                                     default: jkc99_assert(false); break;
@@ -987,44 +987,105 @@ static void print_expr(Expr *expr) {
                                     } break;
                                 case kConstantCharacter:
                                     {
-                                        /* TODO Support wide character constants */
-                                        switch(c->u.charVal) {
-                                            case '\\':  printf_("'\\\\'");    break;
-                                            case '\'':  printf_("'\\\''");    break;
-                                            case '\t':  printf_("'\\t'");     break;
-                                            case '\f':  printf_("'\\f'");     break;
-                                            case '\n':  printf_("'\\n'");     break;
-                                            case '\r':  printf_("'\\r'");     break;
-                                            case '\v':  printf_("'\\v'");     break;
-                                            case '\b':  printf_("'\\b'");     break;
-                                            case '\0':  printf_("'\\0'");     break;
-                                            default:    printf_("'%c'", c->u.charVal);    break;
+                                        switch(c->representation) {
+                                            case kConstantRepresentationOctal:
+                                                {
+                                                    printf_("'\\%o'", c->u.charVal);
+                                                } break;
+                                            case kConstantRepresentationHex:
+                                                {
+                                                    printf_("'\\x%x'", c->u.charVal);
+                                                } break;
+                                            case kConstantRepresentationCharacter:
+                                                {
+                                                    switch(c->u.charVal) {
+                                                        case '\\':  printf_("'\\\\'");    break;
+                                                        case '\'':  printf_("'\\\''");    break;
+                                                        case '\t':  printf_("'\\t'");     break;
+                                                        case '\f':  printf_("'\\f'");     break;
+                                                        case '\n':  printf_("'\\n'");     break;
+                                                        case '\r':  printf_("'\\r'");     break;
+                                                        case '\v':  printf_("'\\v'");     break;
+                                                        case '\b':  printf_("'\\b'");     break;
+                                                        case '\a':  printf_("'\\a'");     break;
+                                                        case '\0':  printf_("'\\0'");     break;
+                                                        default:    printf_("'%c'", c->u.charVal);    break;
+                                                    }
+                                                } break;
+                                            case kConstantRepresentationWideOctal:
+                                                {
+                                                    printf_("L'\\%o'", c->u.charVal);
+                                                } break;
+                                            case kConstantRepresentationWideHex:
+                                                {
+                                                    printf_("L'\\x%x'", c->u.charVal);
+                                                } break;
+                                            case kConstantRepresentationWideCharacter:
+                                                {
+                                                    switch(c->u.charVal) {
+                                                        case '\\':  printf_("L'\\\\'");    break;
+                                                        case '\'':  printf_("L'\\\''");    break;
+                                                        case '\t':  printf_("L'\\t'");     break;
+                                                        case '\f':  printf_("L'\\f'");     break;
+                                                        case '\n':  printf_("L'\\n'");     break;
+                                                        case '\r':  printf_("L'\\r'");     break;
+                                                        case '\v':  printf_("L'\\v'");     break;
+                                                        case '\b':  printf_("L'\\b'");     break;
+                                                        case '\a':  printf_("L'\\a'");     break;
+                                                        case '\0':  printf_("L'\\0'");     break;
+                                                        default:    printf_("L'%lc'", c->u.charVal);    break;
+                                                    }
+                                                } break;
+                                            default : jkc99_assert(false); break;
                                         }
                                     } break;
                             }
                         } break;
                     case kExprPrimaryStringLiteral:
                         {
-                            /* TODO Support wide strings */
-                            const char *p = e->u.str.str;
-                            printf_("\"");
-                            while(*p) {
-                                switch(*p) {
-                                    case '\\' : printf_("\\\\");    break;
-                                    case '\'' : printf_("\\\'");    break;
-                                    case '"':   printf_("\\\"");    break;
-                                    case '\t':  printf_("\\t");     break;
-                                    case '\f':  printf_("\\f");     break;
-                                    case '\n':  printf_("\\n");     break;
-                                    case '\r':  printf_("\\r");     break;
-                                    case '\v':  printf_("\\v");     break;
-                                    case '\b':  printf_("\\b");     break;
-                                    case '\0':  printf_("\\0");     break;
-                                    default:    printf_("%c", *p);  break;
+                            if(e->u.str.wstr) {
+                                const wchar_t *p = e->u.str.wstr;
+                                printf_("%ls", L"L\"");
+                                while(*p) {
+                                    switch(*p) {
+                                        case '\\' : printf_("%ls", L"\\\\");    break;
+                                        case '\'' : printf_("%ls", L"\\\'");    break;
+                                        case '"':   printf_("%ls", L"\\\"");    break;
+                                        case '\t':  printf_("%ls", L"\\t");     break;
+                                        case '\f':  printf_("%ls", L"\\f");     break;
+                                        case '\n':  printf_("%ls", L"\\n");     break;
+                                        case '\r':  printf_("%ls", L"\\r");     break;
+                                        case '\v':  printf_("%ls", L"\\v");     break;
+                                        case '\b':  printf_("%ls", L"\\b");     break;
+                                        case '\a':  printf_("%ls", L"\\a");     break;
+                                        case '\0':  printf_("%ls", L"\\0");     break;
+                                        default:    printf_("%lc", *p);  break;
+                                    }
+                                    p++;
                                 }
-                                p++;
+                                printf_("%ls", L"\"");
+                            } else {
+                                const char *p = e->u.str.str;
+                                printf_("\"");
+                                while(*p) {
+                                    switch(*p) {
+                                        case '\\' : printf_("\\\\");    break;
+                                        case '\'' : printf_("\\\'");    break;
+                                        case '"':   printf_("\\\"");    break;
+                                        case '\t':  printf_("\\t");     break;
+                                        case '\f':  printf_("\\f");     break;
+                                        case '\n':  printf_("\\n");     break;
+                                        case '\r':  printf_("\\r");     break;
+                                        case '\v':  printf_("\\v");     break;
+                                        case '\b':  printf_("\\b");     break;
+                                        case '\a':  printf_("\\a");     break;
+                                        case '\0':  printf_("\\0");     break;
+                                        default:    printf_("%c", *p);  break;
+                                    }
+                                    p++;
+                                }
+                                printf_("\"");
                             }
-                            printf_("\"");
                         } break;
                     case kExprPrimaryExpr:
                         {

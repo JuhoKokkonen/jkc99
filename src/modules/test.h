@@ -23,7 +23,7 @@
 #include <stdio.h>
 
 static inline void jkc99_test_fail(const char *test, int condIndex, const char *cond) {
-    printf("    %-48s FAIL condition %d (%s)\n",test,condIndex,cond);
+    printf("    %-48s FAIL    (%s) condition %d\n",test,cond,condIndex);
 }
 
 #define JKC99T_FAIL(test,condIndex,cond) jkc99_test_fail(test,condIndex,cond); return 1

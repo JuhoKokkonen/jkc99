@@ -1,5 +1,7 @@
 #include "jkc99.h"
 
+#include <wchar.h>
+
 #define JK_DYNAMIC_ARRAY_ASSERT jkc99_assert
 #define JK_DYNAMIC_ARRAY_SIZE_T size_t
 #include "dynamic_array.h"
@@ -214,7 +216,7 @@ JKC99_API void jkc99_lexer_rollback(ParseContext *ctx, Source *src) {
     stb_c_lexer_get_token(ctx->lexer);
 }
 
-static void jkc99_lexer_skip_until(ParseContext *ctx, size_t count, long *tokens) {
+static void jkc99_lexer_skip_until_one_of(ParseContext *ctx, size_t count, long *tokens) {
     while(!jkc99_lexer_is(ctx, CLEX_eof)) {
         for(size_t i = 0; i < count; ++i) {
             if(ctx->lexer->token == tokens[i]) {
@@ -224,8 +226,6 @@ static void jkc99_lexer_skip_until(ParseContext *ctx, size_t count, long *tokens
         jkc99_lexer_next(ctx);
     }
 }
-
-#define jkc99_lexer_skip_until_array(ctx,arr) jkc99_lexer_skip_until((ctx), jkc99_array_count((arr)), (arr))
 
 static void jkc99_parse_preprocessor_skip_whitespace(ParseContext *ctx) {
     while(ctx->lexer->parse_point != ctx->lexer->eof &&
@@ -458,18 +458,23 @@ JKC99_API bool jkc99_lexer_require(ParseContext *ctx, long type) {
 
         unsigned int scope = 0;
 
-        do {
-            if(ctx->lexer->token == '{') {
-                scope++;
-            } else if(ctx->lexer->token == '}') {
-                if(scope) {
-                    scope--;
-                } else {
-                    break;
+        if(type == ')' || type == ']' || type == '}') {
+            do {
+                if(ctx->lexer->token == '{') {
+                    scope++;
+                } else if(ctx->lexer->token == '}') {
+                    if(scope) {
+                        scope--;
+                    } else {
+                        break;
+                    }
                 }
+                stb_c_lexer_get_token(ctx->lexer);
+            } while(!(ctx->lexer->token == type || ctx->lexer->token == CLEX_eof));
+            if(ctx->lexer->token != CLEX_eof) {
+                stb_c_lexer_get_token(ctx->lexer);
             }
-            stb_c_lexer_get_token(ctx->lexer);
-        } while(!(ctx->lexer->token == type || ctx->lexer->token == CLEX_eof));
+        }
     }
     return false;
 }
@@ -1231,35 +1236,35 @@ static Expr *expr_result_to_expr(ParseContext *ctx, ExprResult *res) {
     if(EXPR_RESULT_SUCCESS(res)) {
         const char *str = NULL;
         if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type__Bool)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u._Bool_val, kConstantDecimal, 0, "");
+            expr = jkc99_expr_int(ctx, &src, str, res->u._Bool_val, kConstantRepresentationDecimal, 0, "");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_char)) {
-            expr = jkc99_expr_char(ctx, &src, res->u.char_val);
+            expr = jkc99_expr_char(ctx, &src, kConstantRepresentationCharacter, res->u.char_val);
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_signed_char)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_char_val, kConstantDecimal, 0, "");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_char_val, kConstantRepresentationDecimal, 0, "");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_signed_short)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_short_val, kConstantDecimal, 0, "");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_short_val, kConstantRepresentationDecimal, 0, "");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_signed_int)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_int_val, kConstantDecimal, 0, "");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_int_val, kConstantRepresentationDecimal, 0, "");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_signed_long)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_long_val, kConstantDecimal, 1, "L");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_long_val, kConstantRepresentationDecimal, 1, "L");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_signed_long_long)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_long_long_val, kConstantDecimal, 2, "LL");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.signed_long_long_val, kConstantRepresentationDecimal, 2, "LL");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_unsigned_char)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_char_val, kConstantDecimal, 1, "U");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_char_val, kConstantRepresentationDecimal, 1, "U");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_unsigned_short)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_short_val, kConstantDecimal, 1, "U");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_short_val, kConstantRepresentationDecimal, 1, "U");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_unsigned_int)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_int_val, kConstantDecimal, 1, "U");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_int_val, kConstantRepresentationDecimal, 1, "U");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_unsigned_long)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_long_val, kConstantDecimal, 2, "UL");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_long_val, kConstantRepresentationDecimal, 2, "UL");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_unsigned_long_long)) {
-            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_long_long_val, kConstantDecimal, 3, "ULL");
+            expr = jkc99_expr_int(ctx, &src, str, res->u.unsigned_long_long_val, kConstantRepresentationDecimal, 3, "ULL");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_float)) {
-            expr = jkc99_expr_float(ctx, &src, str, res->u.float_val, kConstantDecimal, 1, "F");
+            expr = jkc99_expr_float(ctx, &src, str, res->u.float_val, kConstantRepresentationDecimal, 1, "F");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_double)) {
-            expr = jkc99_expr_float(ctx, &src, str, res->u.double_val, kConstantDecimal, 0, "");
+            expr = jkc99_expr_float(ctx, &src, str, res->u.double_val, kConstantRepresentationDecimal, 0, "");
         } else if(JKC99_TYPE_HANDLE_EQ(res->type, ctx->type_long_double)) {
-            expr = jkc99_expr_float(ctx, &src, str, res->u.long_double_val, kConstantDecimal, 1, "L");
+            expr = jkc99_expr_float(ctx, &src, str, res->u.long_double_val, kConstantRepresentationDecimal, 1, "L");
         } else {
             jkc99_assert(false);
         }
@@ -1973,7 +1978,7 @@ JKC99_API ExprResult jkc99_eval_expr(ParseContext *ctx, TypeHandle expected, Exp
                                         EXPR_RESULT_SET_SUCCESS(&res);
                                     } else {
                                         /* TODO Proper source string */
-                                        res.u.expr = jkc99_expr_additive(ctx, &expr->src, kExprAdditiveAdd, refEnum->exprResult.u.expr, jkc99_expr_int(ctx, &expr->src, NULL, enumerator->exprOffset, kConstantDecimal, 0, ""));
+                                        res.u.expr = jkc99_expr_additive(ctx, &expr->src, kExprAdditiveAdd, refEnum->exprResult.u.expr, jkc99_expr_int(ctx, &expr->src, NULL, enumerator->exprOffset, kConstantRepresentationDecimal, 0, ""));
                                         if(EXPR_RESULT_UNABLE(&refEnum->exprResult)) {
                                             EXPR_RESULT_SET_UNABLE(&res);
                                         } else {
@@ -2077,7 +2082,7 @@ uint_type_ll:
                                             }
 uint_type_end:;
                                         } else {
-                                            bool doU = (e->u.constant.representation == kConstantHex || e->u.constant.representation == kConstantOctal) ? true : false;
+                                            bool doU = (e->u.constant.representation == kConstantRepresentationHex || e->u.constant.representation == kConstantRepresentationOctal) ? true : false;
                                             JKC99Type u, ul, ull;
                                             JKC99Type s, sl, sll;
 
@@ -4212,6 +4217,21 @@ JKC99_API Expr *jkc99_expr_string(ParseContext *ctx, Source *src, const char *st
     return e;
 }
 
+JKC99_API Expr *jkc99_expr_wstring(ParseContext *ctx, Source *src, const char *str) {
+    Expr *e = jkc99_expr_string(ctx,src,str);
+    /* TODO Intern wide strings ? */
+    size_t len = strlen(str);
+    size_t wlen = mbstowcs(NULL, str, len);
+    if(wlen == (size_t)(-1)) {
+        jkc99_log_error_src(ctx, src, "Invalid multibyte character in string");
+    } else {
+        e->u.primary.u.str.wstr = arena_alloc(&ctx->arena, (wlen+1)*sizeof(wchar_t));
+        mbstowcs((wchar_t*)e->u.primary.u.str.wstr, str, len);
+        *(wchar_t*)(e->u.primary.u.str.wstr + wlen) = L'\0';
+    }
+    return e;
+}
+
 static void constant_set_suffix(Constant *c, size_t suffixLen, const char *suffix) {
     c->suffix[0] = '\0';
     c->suffix[1] = '\0';
@@ -4247,11 +4267,21 @@ JKC99_API Expr *jkc99_expr_float(ParseContext *ctx, Source *src, const char *str
     return e;
 }
 
-JKC99_API Expr *jkc99_expr_char(ParseContext *ctx, Source *src, char charlit) {
+JKC99_API Expr *jkc99_expr_char(ParseContext *ctx, Source *src, ConstantRepresentation repr, unsigned char charlit) {
     Expr *e = jkc99_expr_alloc(ctx, src, kExprPrimary);
     e->u.primary.kind = kExprPrimaryConstant;
     e->u.primary.u.constant.kind = kConstantCharacter;
     e->u.primary.u.constant.u.charVal = charlit;
+    e->u.primary.u.constant.representation = repr;
+    return e;
+}
+
+JKC99_API Expr *jkc99_expr_wchar(ParseContext *ctx, Source *src, ConstantRepresentation repr, wint_t charlit) {
+    Expr *e = jkc99_expr_alloc(ctx, src, kExprPrimary);
+    e->u.primary.kind = kExprPrimaryConstant;
+    e->u.primary.u.constant.kind = kConstantCharacter;
+    e->u.primary.u.constant.u.wcharVal = charlit;
+    e->u.primary.u.constant.representation = repr;
     return e;
 }
 
@@ -4465,6 +4495,7 @@ JKC99_API Expr *jkc99_parse_expr_primary(ParseContext *ctx) {
         expr = jkc99_expr_expr(ctx, &src, jkc99_parse_expr(ctx));
         jkc99_lexer_require(ctx, ')');
     } else if(jkc99_lexer_is(ctx, CLEX_dqstring)) {
+#if 0
         char *buf = NULL;
         da_pushn(buf, ctx->lexer->string_len+1);
         memcpy(buf, ctx->lexer->string, ctx->lexer->string_len);
@@ -4478,33 +4509,42 @@ JKC99_API Expr *jkc99_parse_expr_primary(ParseContext *ctx) {
         }
 
         expr = jkc99_expr_string(ctx, &src, jkc99_str_intern(ctx, buf));
-
         da_free(buf);
+#else
+        if(src.from[0] == 'L') {
+            expr = jkc99_expr_wstring(ctx, &src, jkc99_str_intern(ctx, ctx->lexer->string));
+        } else {
+            jkc99_assert(src.from[0] == '"');
+            expr = jkc99_expr_string(ctx, &src, jkc99_str_intern(ctx, ctx->lexer->string));
+        }
+        jkc99_lexer_next(ctx);
+#endif
+
     } else {
         if(jkc99_lexer_is(ctx, CLEX_intlit)) {
-            ConstantRepresentation repr = kConstantDecimal;
+            ConstantRepresentation repr = kConstantRepresentationDecimal;
             if(ctx->lexer->where_firstchar[0] == '0') {
                 if( ctx->lexer->where_firstchar[1] == 'x' ||
                     ctx->lexer->where_firstchar[1] == 'X') {
-                    repr = kConstantHex;
+                    repr = kConstantRepresentationHex;
                 } else {
-                    repr = kConstantOctal;
+                    repr = kConstantRepresentationOctal;
                 }
             }
             jkc99_assert(ctx->lexer->where_lastchar >= ctx->lexer->where_firstchar);
             expr = jkc99_expr_int(ctx, &src, jkc99_str_intern_range(ctx, ctx->lexer->where_firstchar, (size_t)(ctx->lexer->where_lastchar - ctx->lexer->where_firstchar + 1)), ctx->lexer->int_number, repr, ctx->lexer->string_len, ctx->lexer->string);
             jkc99_lexer_next(ctx);
         } else if(jkc99_lexer_is(ctx, CLEX_floatlit)) {
-            ConstantRepresentation repr = kConstantDecimal;
+            ConstantRepresentation repr = kConstantRepresentationDecimal;
             if(ctx->lexer->where_firstchar[0] == '0' &&
                (ctx->lexer->where_firstchar[1] == 'x' ||
                 ctx->lexer->where_firstchar[1] == 'X')) {
-                repr = kConstantHex;
+                repr = kConstantRepresentationHex;
             } else {
-                repr = kConstantDecimal;
+                repr = kConstantRepresentationDecimal;
                 for(size_t i = 0; i < (size_t)(ctx->lexer->where_lastchar - ctx->lexer->where_firstchar); i++) {
                     if(ctx->lexer->where_firstchar[i] == 'e' || ctx->lexer->where_firstchar[i] == 'E') {
-                        repr = kConstantDecimalWithExponent;
+                        repr = kConstantRepresentationDecimalWithExponent;
                         break;
                     }
                 }
@@ -4513,7 +4553,30 @@ JKC99_API Expr *jkc99_parse_expr_primary(ParseContext *ctx) {
             expr = jkc99_expr_float(ctx, &src, jkc99_str_intern_range(ctx, ctx->lexer->where_firstchar, (size_t)(ctx->lexer->where_lastchar - ctx->lexer->where_firstchar + 1)), ctx->lexer->real_number, repr, ctx->lexer->string_len, ctx->lexer->string);
             jkc99_lexer_next(ctx);
         } else if(jkc99_lexer_is(ctx, CLEX_charlit)) {
-            expr = jkc99_expr_char(ctx, &src, ctx->lexer->int_number);
+            if(src.from[0] == 'L') {
+                ConstantRepresentation repr = kConstantRepresentationWideCharacter;
+                if(src.from[2] == '\\') {
+                    if(src.from[3] == 'x' || src.from[3] == 'X') {
+                        repr = kConstantRepresentationWideHex;
+                    } else if(src.from[3] >= '0' && src.from[3] <= '7') {
+                        repr = kConstantRepresentationWideOctal;
+                    }
+                }
+                jkc99_assert(repr);
+                expr = jkc99_expr_wchar(ctx, &src, repr, ctx->lexer->int_number);
+            } else {
+                ConstantRepresentation repr = kConstantRepresentationCharacter;
+                jkc99_assert(src.from[0] == '\'');
+                if(src.from[1] == '\\') {
+                    if(src.from[2] == 'x' || src.from[2] == 'X') {
+                        repr = kConstantRepresentationHex;
+                    } else if(src.from[2] >= '0' && src.from[2] <= '7') {
+                        repr = kConstantRepresentationOctal;
+                    }
+                }
+                jkc99_assert(repr);
+                expr = jkc99_expr_char(ctx, &src, repr, ctx->lexer->int_number);
+            }
             jkc99_lexer_next(ctx);
         } else if(jkc99_lexer_is(ctx, CLEX_id)) {
             expr = jkc99_expr_identifier(ctx, &src, jkc99_str_intern(ctx, ctx->lexer->string));
@@ -4558,7 +4621,9 @@ JKC99_API InitializerList jkc99_parse_initializer_list(ParseContext *ctx) {
             da_push(list.designations, d);
             da_push(list.initializers, i);
         } else {
+            long tokens[] = {',','}'};
             jkc99_log_error(ctx, "Expected initializer");
+            jkc99_lexer_skip_until_one_of(ctx, jkc99_array_count(tokens), tokens);
         }
     } while(jkc99_lexer_match(ctx, ',') && !jkc99_lexer_is(ctx, '}') && !jkc99_lexer_is(ctx, CLEX_eof));
 
@@ -5415,7 +5480,7 @@ static StructDeclaration *jkc99_parse_struct_declaration(ParseContext *ctx) {
         long tokens[] = {';','}'};
 
         jkc99_log_error_src(ctx, &src, "Expected member declaration specifiers");
-        jkc99_lexer_skip_until_array(ctx, tokens);
+        jkc99_lexer_skip_until_one_of(ctx, jkc99_array_count(tokens), tokens);
         jkc99_lexer_match(ctx, ';');
     }
 
@@ -5777,7 +5842,7 @@ static _Bool jkc99_parse_parameter_list_(ParseContext *ctx, size_t index, Parame
 static void jkc99_parse_parameter_list_skip(ParseContext *ctx, size_t index, Source *src, ParameterDeclaration ***list, bool *hasEllipsis) {
     long tokens[] = { ',', ')' };
     jkc99_log_error_src(ctx, src, "Unable to parse parameter number %zu", index);
-    jkc99_lexer_skip_until_array(ctx, tokens);
+    jkc99_lexer_skip_until_one_of(ctx, jkc99_array_count(tokens), tokens);
     if(jkc99_lexer_match(ctx, ',')) {
         jkc99_parse_parameter_list_(ctx, index+1, list, hasEllipsis);
     } else {

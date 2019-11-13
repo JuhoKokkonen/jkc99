@@ -1242,7 +1242,7 @@ JKC99_HOOK(parse_type_info) {
                 *expr = 
                     jkc99_expr_expr(ctx, &src, jkc99_expr_additive(ctx, &parenSrc, kExprAdditiveAdd,
                         jkc99_expr_identifier(ctx, &parenSrc, gIntrospectModule.str_gIntrospectTypeInfo),
-                        jkc99_expr_int(ctx, &parenSrc, jkc99_str_intern(ctx, str), index, kConstantDecimal, 3, "ULL")
+                        jkc99_expr_int(ctx, &parenSrc, jkc99_str_intern(ctx, str), index, kConstantRepresentationDecimal, 3, "ULL")
                         ));
             }
             jkc99_lexer_require(ctx, ')');

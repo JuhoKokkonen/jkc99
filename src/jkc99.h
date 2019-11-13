@@ -1,12 +1,11 @@
 /* TODO These are some of the bigger items
  *  - Proper error messages universally. At the moment we mostly just assert and/or crash out
  *  - Compile time expression evaluation needs a lot of work
- *  - Support multiple compilation units properly
  *  - Support for bitfields
+ *  - Support for universal character names
  *  - Optimise, at the very least use hash table in place of linear lookups in certain places
  *  - Discriminate function types on calling convention
  *  - Support stateful pragmas such as pack or attribute push/pop for types
- *  - Support wide string literals and character constants
  */
 
 #ifndef JKC99_H
@@ -1098,11 +1097,14 @@ typedef enum ConstantKind {
 } ConstantKind;
 
 typedef enum ConstantRepresentation {
-    kConstantDecimal,
-    kConstantHex,
-    kConstantOctal,
-    kConstantDecimalWithExponent,
-    kConstantWide
+    kConstantRepresentationDecimal,
+    kConstantRepresentationHex,
+    kConstantRepresentationOctal,
+    kConstantRepresentationDecimalWithExponent,
+    kConstantRepresentationCharacter,
+    kConstantRepresentationWideCharacter,
+    kConstantRepresentationWideOctal,
+    kConstantRepresentationWideHex
 } ConstantRepresentation;
 
 typedef struct Constant {
@@ -1113,8 +1115,8 @@ typedef struct Constant {
     union {
         unsigned long long  intVal;
         double              floatVal;
-        char                charVal;
-        wchar_t             wcharVal;
+        unsigned char       charVal;
+        wint_t              wcharVal;
     } u;
 } Constant;
 
@@ -1570,9 +1572,11 @@ JKC99_API Stmt *jkc99_stmt_asm_extended(ParseContext *ctx, Source *src, int qual
 
 JKC99_API Expr *jkc99_expr_expr(ParseContext *ctx, Source *src, Expr *expr);
 JKC99_API Expr *jkc99_expr_string(ParseContext *ctx, Source *src, const char *str);
+JKC99_API Expr *jkc99_expr_wstring(ParseContext *ctx, Source *src, const char *str);
 JKC99_API Expr *jkc99_expr_int(ParseContext *ctx, Source *src, const char *str, unsigned long long intlit, ConstantRepresentation repr, size_t suffixLen, const char *suffix);
 JKC99_API Expr *jkc99_expr_float(ParseContext *ctx, Source *src, const char *str, double floatlit, ConstantRepresentation repr, size_t suffixLen, const char *suffix);
-JKC99_API Expr *jkc99_expr_char(ParseContext *ctx, Source *src, char charlit);
+JKC99_API Expr *jkc99_expr_char(ParseContext *ctx, Source *src, ConstantRepresentation, unsigned char charlit);
+JKC99_API Expr *jkc99_expr_wchar(ParseContext *ctx, Source *src, ConstantRepresentation repr, wint_t charlit);
 JKC99_API Expr *jkc99_expr_identifier(ParseContext *ctx, Source *src, const char *identifier);
 JKC99_API Expr *jkc99_expr_compound(ParseContext *ctx, Source *src, TypeName *typeName, InitializerList initializerList);
 JKC99_API Expr *jkc99_expr_index(ParseContext *ctx, Source *src, Expr *expr, Expr *indexExpr);

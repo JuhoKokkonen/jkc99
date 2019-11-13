@@ -1,11 +1,10 @@
 @echo off
 
-set JKC99RunUnitTests=1
+set JKC99RunUnitTests=0
 
 set JKC99Dir=%~dp0
 
-set WindowsFlags=-DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS 
-REM set WindowsFlags=-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS 
+set WindowsFlags=-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS 
 set ClangFlagsCommon=-std=c99 -pedantic -Wall -Wextra -Werror -Wno-missing-field-initializers
 set ClangFlags=-g -gcodeview -fdiagnostics-absolute-paths %ClangFlagsCommon%
 REM set ClangFlags=-O2 %ClangFlagsCommon%

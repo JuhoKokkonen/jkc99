@@ -25,13 +25,13 @@ JKC99_HOOK(parse_test_function) {
         da_push(printfArgs, 
                 jkc99_expr_additive(ctx, NULL, kExprAdditiveAdd, 
                     jkc99_expr_identifier(ctx, NULL, jkc99_str_intern(ctx, "__func__")),
-                    jkc99_expr_int(ctx, NULL, NULL, (int)gTestModule.funcPrefixLen, kConstantDecimal, 0, "")));
+                    jkc99_expr_int(ctx, NULL, NULL, (int)gTestModule.funcPrefixLen, kConstantRepresentationDecimal, 0, "")));
         item.stmt = jkc99_stmt_expr(ctx, NULL, 0, NULL, 
                 jkc99_expr_call(ctx, NULL, 
                     jkc99_expr_identifier(ctx, NULL, jkc99_str_intern(ctx, "printf")),
                     printfArgs));
         jkc99_stmt_compound_push(ctx, func->body, item);
-        item.stmt = jkc99_stmt_return(ctx, NULL, jkc99_expr_int(ctx, NULL, jkc99_str_intern(ctx, "0"), 0, kConstantDecimal, 0, ""));
+        item.stmt = jkc99_stmt_return(ctx, NULL, jkc99_expr_int(ctx, NULL, jkc99_str_intern(ctx, "0"), 0, kConstantRepresentationDecimal, 0, ""));
         jkc99_stmt_compound_push(ctx, func->body, item);
     }
 
