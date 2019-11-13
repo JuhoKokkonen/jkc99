@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <float.h>
+#include <wchar.h>
 
 #include "lexer.c"
 
